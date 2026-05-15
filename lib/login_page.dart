@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'home_page.dart';
 
@@ -44,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       // IMPORTANTE: Use o Client ID do tipo "Web" do Google Cloud Console
       // mesmo rodando no Android/iOS.
-      const webClientId = '669746589905-setgtinl740aidolfns29h030l76cs9g.apps.googleusercontent.com'; // Exemplo, substitua pelo seu
+      const webClientId = '669746589905-odm0u5qpmurq992vnfn934pknu8die0d.apps.googleusercontent.com'; // ID do cliente Web do novo projeto
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: webClientId,
@@ -62,18 +63,20 @@ class _LoginPageState extends State<LoginPage> {
       final accessToken = googleAuth.accessToken;
       final idToken = googleAuth.idToken;
 
-      print('Google ID Token: $idToken');
-      print('Google Access Token: $accessToken');
-
       if (idToken == null) {
         throw 'ID Token não encontrado. Verifique as configurações no Google Cloud Console.';
       }
 
-      await Supabase.instance.client.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
+      final credential = GoogleAuthProvider.credential(
         accessToken: accessToken,
+        idToken: idToken,
       );
+
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.user == null) {
+        throw 'Falha ao autenticar com o Firebase.';
+      }
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -106,12 +109,12 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       if (_isLoginMode) {
-        final response = await Supabase.instance.client.auth.signInWithPassword(
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        if (response.user != null) {
+        if (userCredential.user != null) {
           if (!mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const HomePage()),
@@ -119,16 +122,16 @@ class _LoginPageState extends State<LoginPage> {
           return;
         }
       } else {
-        final response = await Supabase.instance.client.auth.signUp(
+        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
-        final user = response.user;
+        final user = userCredential.user;
         if (user != null) {
-          await Supabase.instance.client.from('profiles').insert({
-            'id': user.id,
+          await FirebaseFirestore.instance.collection('profiles').doc(user.uid).set({
             'email': email,
+            'created_at': FieldValue.serverTimestamp(),
           });
 
           if (!mounted) return;
@@ -140,8 +143,8 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       await _showSnackBar('Falha na autenticação. Verifique os dados e tente novamente.');
-    } on AuthException catch (error) {
-      await _showSnackBar(error.message);
+    } on FirebaseAuthException catch (error) {
+      await _showSnackBar(error.message ?? 'Erro de autenticação.');
     } catch (error) {
       await _showSnackBar(error.toString());
     } finally {
@@ -169,7 +172,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A237E), // Azul Escuro
+      backgroundColor: const Color(0xFF1A237E), // Voltando para o Azul Escuro original
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

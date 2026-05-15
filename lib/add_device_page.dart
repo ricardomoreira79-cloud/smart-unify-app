@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddDevicePage extends StatefulWidget {
   const AddDevicePage({super.key});
@@ -24,25 +25,39 @@ class _AddDevicePageState extends State<AddDevicePage> {
       _isLoading = true;
     });
 
-    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não autenticado.')),
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
     final name = _nameController.text.trim();
 
     Map<String, dynamic> deviceData = {
       'user_id': userId,
       'name': name,
       'type': _selectedBrand,
+      'created_at': FieldValue.serverTimestamp(),
     };
 
     if (_selectedBrand == 'Tuya/SmartLife') {
       deviceData['device_id'] = _deviceIdController.text.trim();
-      deviceData['status'] = false; // Default status for switches
+      deviceData['status'] = false;
     } else if (_selectedBrand == 'iCSee') {
       deviceData['ip'] = _ipController.text.trim();
       deviceData['rtsp_url'] = _rtspController.text.trim();
     }
 
     try {
-      await Supabase.instance.client.from('devices').insert(deviceData);
+      await FirebaseFirestore.instance.collection('devices').add(deviceData);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

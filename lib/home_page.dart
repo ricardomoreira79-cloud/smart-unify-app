@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import 'add_device_page.dart';
 import 'video_player_page.dart';
@@ -13,7 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<void> _signOut(BuildContext context) async {
-    await Supabase.instance.client.auth.signOut();
+    await FirebaseAuth.instance.signOut();
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -22,17 +23,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> toggleDevice(String id, bool currentStatus) async {
-    await Supabase.instance.client
-        .from('devices')
-        .update({'status': !currentStatus})
-        .eq('id', id);
+    await FirebaseFirestore.instance.collection('devices').doc(id).update({
+      'status': !currentStatus,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final userId = user?.id ?? '';
-    final userName = user?.userMetadata?['full_name'] ?? user?.email ?? 'Usuário';
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid ?? '';
+    final userName = user?.displayName ?? user?.email ?? 'Usuário';
 
     return Scaffold(
       appBar: AppBar(
@@ -54,11 +54,11 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: Supabase.instance.client
-                  .from('devices')
-                  .stream(primaryKey: ['id'])
-                  .eq('user_id', userId),
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('devices')
+                  .where('user_id', isEqualTo: userId)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -70,7 +70,13 @@ class _HomePageState extends State<HomePage> {
                   );
                 }
 
-                final devices = snapshot.data ?? [];
+                final devices = snapshot.data?.docs
+                        .map((doc) => {
+                              'id': doc.id,
+                              ...doc.data(),
+                            })
+                        .toList() ??
+                    [];
 
                 if (devices.isEmpty) {
                   return const Center(
@@ -87,8 +93,8 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final device = devices[index];
                     final id = device['id'] as String;
-                    final name = device['name'] as String;
-                    final type = device['type'] as String;
+                    final name = device['name'] as String? ?? 'Dispositivo';
+                    final type = device['type'] as String? ?? 'Desconhecido';
                     final status = device['status'] as bool? ?? false;
                     final icon = type == 'iCSee' ? Icons.camera : Icons.power;
 
@@ -100,7 +106,6 @@ class _HomePageState extends State<HomePage> {
                         if (type == 'Tuya/SmartLife') {
                           toggleDevice(id, status);
                         } else {
-                          // Câmera
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => VideoPlayerPage(

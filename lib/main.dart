@@ -1,24 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'home_page.dart';
 import 'login_page.dart';
 
-const supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-  defaultValue: 'https://wstokigioflukjywlbbi.supabase.co',
-);
-const supabaseAnonKey = String.fromEnvironment(
-  'SUPABASE_ANON_KEY',
-  defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzdG9raWdpb2ZsdWtqeXdsYmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MjU3MjAsImV4cCI6MjA5NDIwMTcyMH0.LxSXMIoANA70zoa2iAu7k0-ImdDcUSM737JjgbuaVGE',
-);
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -63,10 +52,10 @@ class AuthStatePage extends StatefulWidget {
 class _AuthStatePageState extends State<AuthStatePage> {
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<dynamic>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        final session = snapshot.data?.session;
+        final user = snapshot.data;
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -74,7 +63,7 @@ class _AuthStatePageState extends State<AuthStatePage> {
           );
         }
 
-        if (session != null) {
+        if (user != null) {
           return const HomePage();
         }
 
