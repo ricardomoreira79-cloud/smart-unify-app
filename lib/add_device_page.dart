@@ -86,7 +86,7 @@ class _AddDevicePageState extends State<AddDevicePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<String>(
-                value: _selectedBrand,
+                initialValue: _selectedBrand,
                 decoration: const InputDecoration(
                   labelText: 'Marca do Dispositivo',
                   border: OutlineInputBorder(),

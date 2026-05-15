@@ -30,7 +30,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final user = Supabase.instance.client.auth.currentUser;
+    final userId = user?.id ?? '';
+    final userName = user?.userMetadata?['full_name'] ?? user?.email ?? 'Usuário';
 
     return Scaffold(
       appBar: AppBar(
@@ -42,73 +44,86 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client
-            .from('devices')
-            .stream(primaryKey: ['id'])
-            .eq('user_id', userId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Olá, $userName! 👋',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: Supabase.instance.client
+                  .from('devices')
+                  .stream(primaryKey: ['id'])
+                  .eq('user_id', userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Erro ao carregar dispositivos: ${snapshot.error}'),
-            );
-          }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Erro ao carregar dispositivos: ${snapshot.error}'),
+                  );
+                }
 
-          final devices = snapshot.data ?? [];
+                final devices = snapshot.data ?? [];
 
-          if (devices.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhum dispositivo cadastrado.\nAdicione um novo dispositivo.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
+                if (devices.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Nenhum dispositivo cadastrado.\nAdicione um novo dispositivo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: devices.length,
-            itemBuilder: (context, index) {
-              final device = devices[index];
-              final id = device['id'] as String;
-              final name = device['name'] as String;
-              final type = device['type'] as String;
-              final status = device['status'] as bool? ?? false;
-              final icon = type == 'iCSee' ? Icons.camera : Icons.power;
+                return ListView.builder(
+                  itemCount: devices.length,
+                  itemBuilder: (context, index) {
+                    final device = devices[index];
+                    final id = device['id'] as String;
+                    final name = device['name'] as String;
+                    final type = device['type'] as String;
+                    final status = device['status'] as bool? ?? false;
+                    final icon = type == 'iCSee' ? Icons.camera : Icons.power;
 
-              return ListTile(
-                leading: Icon(icon),
-                title: Text(name),
-                subtitle: Text(type),
-                onTap: () {
-                  if (type == 'Tuya/SmartLife') {
-                    toggleDevice(id, status);
-                  } else {
-                    // Câmera
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => VideoPlayerPage(
-                          deviceName: name,
-                          streamUrl: device['rtsp_url'] as String,
-                        ),
-                      ),
+                    return ListTile(
+                      leading: Icon(icon),
+                      title: Text(name),
+                      subtitle: Text(type),
+                      onTap: () {
+                        if (type == 'Tuya/SmartLife') {
+                          toggleDevice(id, status);
+                        } else {
+                          // Câmera
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => VideoPlayerPage(
+                                deviceName: name,
+                                streamUrl: device['rtsp_url'] as String,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      trailing: type == 'Tuya/SmartLife'
+                          ? Switch(
+                              value: status,
+                              onChanged: (value) => toggleDevice(id, status),
+                            )
+                          : null,
                     );
-                  }
-                },
-                trailing: type == 'Tuya/SmartLife'
-                    ? Switch(
-                        value: status,
-                        onChanged: (value) => toggleDevice(id, status),
-                      )
-                    : null,
-              );
-            },
-          );
-        },
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -121,4 +136,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-

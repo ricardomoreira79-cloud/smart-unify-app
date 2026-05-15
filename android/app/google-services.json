@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "669746589905",
+    "project_id": "smartunify-54264",
+    "storage_bucket": "smartunify-54264.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:669746589905:android:4207dc4e4f6795200c15f0",
+        "android_client_info": {
+          "package_name": "com.example.smart_unify_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF3HIzuzZXrO2goHJQyalakOoVe5OrCZE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
