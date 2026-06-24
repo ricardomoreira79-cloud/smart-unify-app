@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       // IMPORTANTE: Use o Client ID do tipo "Web" do Google Cloud Console
       // mesmo rodando no Android/iOS.
-      const webClientId = '669746589905-odm0u5qpmurq992vnfn934pknu8die0d.apps.googleusercontent.com'; // ID do cliente Web do novo projeto
+      const webClientId = '669746589905-setgtinl740aidolfns29h030l76cs9g.apps.googleusercontent.com'; // Exemplo, substitua pelo seu
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: webClientId,
@@ -172,7 +172,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A237E), // Voltando para o Azul Escuro original
+      backgroundColor: Colors.red, // Teste extremo de cor
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
